@@ -14,7 +14,7 @@ This CLI utility compares binary packages between two branches of ALT Linux repo
 2. Clone the repository:
 
     ```
-    git clone https://github.com/<username>/package-comparison-tool.git
+    git clone https://github.com/Raphailinc/package-comparison-tool.git
     cd package-comparison-tool
     ```
 
