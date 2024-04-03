@@ -19,9 +19,12 @@ def get_branch_binary_packages(branch):
         for pkg in packages_data["packages"]:
             package_info = {
                 "name": pkg["name"],
+                "epoch": pkg["epoch"],
                 "version": pkg["version"],
                 "release": pkg["release"],
                 "arch": pkg["arch"],
+                "buildtime": pkg["buildtime"],
+                "disttag": pkg["disttag"],
                 "url": f"https://packages.altlinux.org/ru/{branch}/binary/{pkg['name']}/{pkg['arch']}/"
             }
             packages.append(package_info)

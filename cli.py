@@ -25,9 +25,12 @@ def compare_packages(branch1, branch2):
         "packages_only_in_branch1": [
             {
                 "name": pkg["name"],
+                "epoch": pkg["epoch"],
                 "version": pkg["version"],
                 "release": pkg["release"],
                 "arch": pkg["arch"],
+                "buildtime": pkg["buildtime"],
+                "disttag": pkg["disttag"],
                 "url": f"https://packages.altlinux.org/ru/{branch1}/binary/{pkg['name']}/{pkg['arch']}/"
             } 
             for pkg in packages1.values() if pkg["name"] not in packages2
@@ -35,9 +38,12 @@ def compare_packages(branch1, branch2):
         "packages_only_in_branch2": [
             {
                 "name": pkg["name"],
+                "epoch": pkg["epoch"],
                 "version": pkg["version"],
                 "release": pkg["release"],
                 "arch": pkg["arch"],
+                "buildtime": pkg["buildtime"],
+                "disttag": pkg["disttag"],
                 "url": f"https://packages.altlinux.org/ru/{branch2}/binary/{pkg['name']}/{pkg['arch']}/"
             } 
             for pkg in packages2.values() if pkg["name"] not in packages1
@@ -45,9 +51,12 @@ def compare_packages(branch1, branch2):
         "packages_with_higher_version_in_branch1": [
             {
                 "name": pkg["name"],
+                "epoch": pkg["epoch"],
                 "version": pkg["version"],
                 "release": pkg["release"],
                 "arch": pkg["arch"],
+                "buildtime": pkg["buildtime"],
+                "disttag": pkg["disttag"],
                 "url": f"https://packages.altlinux.org/ru/{branch1}/binary/{pkg['name']}/{pkg['arch']}/"
             } 
             for pkg in packages1.values() 
