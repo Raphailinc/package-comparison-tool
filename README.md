@@ -59,9 +59,12 @@ To use the Package Comparison Tool, follow these steps:
     "packages_only_in_branch1": [
         {
         "name": "example-package",
+        "epoch": 0,
         "version": "1.0",
         "release": "alt1",
         "arch": "x86_64",
+        "buildtime": "1708646095",
+        "disttag": "sisyphus+341252.500.2.3",
         "url": "https://packages.altlinux.org/ru/sisyphus/binary/example-package/x86_64/"
         }
     ],
