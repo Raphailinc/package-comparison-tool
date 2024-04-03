@@ -22,19 +22,56 @@ def compare_packages(branch1, branch2):
     packages2 = {pkg["name"]: pkg for pkg in packages_branch2["packages"]}
 
     comparison_result = {
-        "packages_only_in_branch1": [pkg for pkg in packages1 if pkg not in packages2],
-        "packages_only_in_branch2": [pkg for pkg in packages2 if pkg not in packages1],
+        "packages_only_in_branch1": [
+            {
+                "name": pkg["name"],
+                "version": pkg["version"],
+                "release": pkg["release"],
+                "arch": pkg["arch"],
+                "url": f"https://packages.altlinux.org/ru/{branch1}/binary/{pkg['name']}/{pkg['arch']}/"
+            } 
+            for pkg in packages1.values() if pkg["name"] not in packages2
+        ],
+        "packages_only_in_branch2": [
+            {
+                "name": pkg["name"],
+                "version": pkg["version"],
+                "release": pkg["release"],
+                "arch": pkg["arch"],
+                "url": f"https://packages.altlinux.org/ru/{branch2}/binary/{pkg['name']}/{pkg['arch']}/"
+            } 
+            for pkg in packages2.values() if pkg["name"] not in packages1
+        ],
         "packages_with_higher_version_in_branch1": [
-            pkg for pkg in packages1
-            if pkg in packages2 and packages1[pkg]["version"] > packages2[pkg]["version"]
+            {
+                "name": pkg["name"],
+                "version": pkg["version"],
+                "release": pkg["release"],
+                "arch": pkg["arch"],
+                "url": f"https://packages.altlinux.org/ru/{branch1}/binary/{pkg['name']}/{pkg['arch']}/"
+            } 
+            for pkg in packages1.values() 
+            if pkg["name"] in packages2 and compare_version_release(pkg["version"], packages2[pkg["name"]]["version"]) > 0
         ]
     }
 
     return comparison_result
 
 def compare_version_release(version_release1, version_release2):
-    version1, release1 = version_release1.split('-')
-    version2, release2 = version_release2.split('-')
+    version_release_parts1 = version_release1.split('-')
+    version_release_parts2 = version_release2.split('-')
+
+    if len(version_release_parts1) == 1:
+        version1 = version_release_parts1[0]
+        release1 = ""
+    else:
+        version1, release1 = version_release_parts1
+
+    if len(version_release_parts2) == 1:
+        version2 = version_release_parts2[0]
+        release2 = ""
+    else:
+        version2, release2 = version_release_parts2
 
     version_parts1 = version1.split('.')
     version_parts2 = version2.split('.')
