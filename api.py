@@ -14,16 +14,21 @@ def get_branch_binary_packages(branch):
     response = requests.get(url)
 
     if response.status_code == 200:
-        return response.json()
+        packages_data = response.json()
+        packages = []
+        for pkg in packages_data["packages"]:
+            package_info = {
+                "name": pkg["name"],
+                "version": pkg["version"],
+                "release": pkg["release"],
+                "arch": pkg["arch"],
+                "url": f"https://packages.altlinux.org/ru/{branch}/binary/{pkg['name']}/{pkg['arch']}/"
+            }
+            packages.append(package_info)
+        return {"packages": packages}
     elif response.status_code == 404:
         print("Requested data not found in database.")
     else:
         print("Error:", response.status_code)
 
     return None
-
-if __name__ == "__main__":
-    branch = "p10"
-    packages_data = get_branch_binary_packages(branch)
-    if packages_data:
-        print("Packages data:", packages_data)
