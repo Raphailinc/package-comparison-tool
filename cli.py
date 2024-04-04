@@ -60,7 +60,9 @@ def compare_packages(branch1, branch2):
                 "url": f"https://packages.altlinux.org/ru/{branch1}/binary/{pkg['name']}/{pkg['arch']}/"
             } 
             for pkg in packages1.values() 
-            if pkg["name"] in packages2 and compare_version_release(pkg["version"], packages2[pkg["name"]]["version"]) > 0
+            if pkg["name"] in packages2 and compare_version_release(pkg["version"] + '-' + pkg["release"], 
+                                                                    packages2[pkg["name"]]["version"] 
+                                                                    + '-' + packages2[pkg["name"]]["release"]) > 0
         ]
     }
 
@@ -85,6 +87,10 @@ def compare_version_release(version_release1, version_release2):
     version_parts1 = version1.split('.')
     version_parts2 = version2.split('.')
 
+    max_length = max(len(version_parts1), len(version_parts2))
+    version_parts1 += ['0'] * (max_length - len(version_parts1))
+    version_parts2 += ['0'] * (max_length - len(version_parts2))
+
     for part1, part2 in zip(version_parts1, version_parts2):
         if part1.isdigit() and part2.isdigit():
             if int(part1) > int(part2):
@@ -92,9 +98,9 @@ def compare_version_release(version_release1, version_release2):
             elif int(part1) < int(part2):
                 return -1
         elif part1.isdigit():
-            return 1
-        elif part2.isdigit():
             return -1
+        elif part2.isdigit():
+            return 1
         else:
             if part1 > part2:
                 return 1
@@ -106,19 +112,17 @@ def compare_version_release(version_release1, version_release2):
     elif len(version_parts1) < len(version_parts2):
         return -1
 
-    if release1.isdigit() and release2.isdigit():
-        return int(release1) - int(release2)
-    elif release1.isdigit():
-        return 1
-    elif release2.isdigit():
+    if release1 and not release2:
         return -1
-    else:
+    elif release2 and not release1:
+        return 1
+    elif release1 and release2:
         if release1 > release2:
             return 1
         elif release1 < release2:
             return -1
-        else:
-            return 0
+
+    return 0
 
 def main():
     """
@@ -129,8 +133,9 @@ def main():
     comparison_result = compare_packages(branch1, branch2)
 
     if comparison_result:
-        print("Comparison Result:")
-        print(json.dumps(comparison_result, indent=4))
+        with open("comparison_result.txt", "w") as file:
+            file.write("Comparison Result:\n")
+            file.write(json.dumps(comparison_result, indent=4))
 
 if __name__ == "__main__":
     main()
