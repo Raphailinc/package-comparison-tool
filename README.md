@@ -1,86 +1,69 @@
-# Package Comparison Tool
+# Package Comparison Tool (altpkg-diff)
 
-This CLI utility compares binary packages between two branches of ALT Linux repositories. It retrieves package information using the ALT Linux API and provides a JSON report with the comparison results.
+CLI and library for diffing ALT Linux binary packages between branches. Fetches both branches in parallel with retries and outputs JSON, human-readable summaries, or GitHub-ready Markdown.
+
+## Highlights
+- JSON, summary, and Markdown outputs; `--limit` keeps human output compact (set `0` for unlimited).
+- Filters: architectures (`--arch`), regex by package name (`--filter`), and name-only comparison (`--ignore-arch`).
+- CI-friendly: `--fail-on-diff` exits with code `1` when differences are found.
+- Resilient HTTP client with retries, timeouts, and customizable `--user-agent`.
+- New CLI alias `altpkg-diff` (keeps `package-comparison` for compatibility).
 
 ## Installation
+```bash
+git clone https://github.com/Raphailinc/package-comparison-tool.git
+cd package-comparison-tool
+python -m venv .venv && source .venv/bin/activate
+pip install -e .[dev]
+```
 
-1. Make sure you have Python 3 and pip installed on your system. You can install them using the following commands:
+Or install directly via pip:
+```bash
+pip install git+https://github.com/Raphailinc/package-comparison-tool.git
+```
 
-    ```
-    sudo apt update
-    sudo apt install python3 python3-pip
-    ```
+## CLI usage
+```bash
+# defaults: sisyphus vs p10, JSON to stdout
+package-comparison
 
-2. Clone the repository:
+# same tool via shorter alias
+altpkg-diff sisyphus p10 --format summary
 
-    ```
-    git clone https://github.com/Raphailinc/package-comparison-tool.git
-    cd package-comparison-tool
-    ```
+# GitHub-ready Markdown report (first 25 rows shown) saved to file
+package-comparison sisyphus p10 --format markdown --limit 25 -o report.md
 
-3. Create and activate a virtual environment:
+# CI mode: fail on any differences, ignore arch suffixes, filter only nginx packages
+package-comparison p10 sisyphus --ignore-arch --filter nginx --fail-on-diff
+```
 
-    ```
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
+Key options:
+- `--format json|summary|markdown|text` – choose output format (JSON honors `--pretty/--no-pretty`).
+- `--filter REGEX` – repeatable regex for package names (case-insensitive).
+- `--arch ARCH` – repeatable arch filter; `--ignore-arch` compares by name only.
+- `--limit N` – limit rows in human-readable formats (Markdown/summary); `0` shows everything.
+- `--fail-on-diff` – exit with code `1` when differences exist (useful for CI/pipelines).
+- `--timeout`, `--user-agent` – tune HTTP behavior.
 
-4. Install dependencies:
+## Library use
+```python
+from package_comparison_tool.compare import compare_packages
 
-    ```
-    pip3 install -r requirements.txt
-    ```
+result = compare_packages(
+    "sisyphus",
+    "p10",
+    ignore_arch=False,
+    arches={"x86_64", "noarch"},
+    name_patterns=None,
+)
 
-## Usage
+print(result["stats"])
+# {'only_in_branch1': ..., 'differences': ...}
+```
 
-To use the Package Comparison Tool, follow these steps:
-
-1. Open a terminal window and navigate to the directory where you cloned the repository.
-
-2. Activate the virtual environment:
-
-    ```
-    source venv/bin/activate
-    ```
-
-3. Run the CLI utility with the following command:
-
-    ```
-    python3 cli.py
-    ```
-
-4. The utility will compare binary packages between the "sisyphus" and "p10" branches by default and display the comparison results in JSON format.
-
-    Example output:
-
-    ```
-    Comparison Result:
-    {
-    "packages_only_in_branch1": [
-        {
-        "name": "example-package",
-        "epoch": 0,
-        "version": "1.0",
-        "release": "alt1",
-        "arch": "x86_64",
-        "buildtime": "1708646095",
-        "disttag": "sisyphus+341252.500.2.3",
-        "url": "https://packages.altlinux.org/ru/sisyphus/binary/example-package/x86_64/"
-        }
-    ],
-    "packages_only_in_branch2": [],
-    "packages_with_higher_version_in_branch1": []
-    }
-    ```
-
-5. You can also specify branches to compare explicitly by providing their names as command-line arguments:
-
-    ```
-    python3 cli.py
-    ```
-
-6. The utility will then compare the specified branches and display the results accordingly.
+## Development
+- Run tests: `pytest`
+- Lint: `ruff check .`
 
 ## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT – see [LICENSE](LICENSE).
