@@ -1,12 +1,12 @@
 .PHONY: install lint test ci
 
 install:
-\tpython -m pip install -e .[dev]
+	python -m pip install -e .[dev]
 
 lint:
-\truff check .
+	ruff check .
 
 test:
-\tpytest
+	pytest
 
 ci: install lint test
