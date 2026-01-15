@@ -1,4 +1,5 @@
 ![CI](https://github.com/Raphailinc/altpkg-diff/actions/workflows/ci.yml/badge.svg)
+![Coverage](https://img.shields.io/codecov/c/github/Raphailinc/altpkg-diff?label=coverage)
 
 # altpkg-diff
 
@@ -66,6 +67,10 @@ altpkg-diff p10 sisyphus --format json --limit 5 | head
 
 # Markdown report, name-only comparison
 altpkg-diff sisyphus p10 --ignore-arch --format markdown -o report.md
+
+# CI pipeline example (GitHub Actions step)
+pip install -e .[dev]
+pytest --cov=package_comparison_tool
 ```
 
 ## Architecture
