@@ -1,5 +1,7 @@
 # altpkg-diff
 
+![CI](https://github.com/Raphailinc/altpkg-diff/actions/workflows/ci.yml/badge.svg)
+
 CLI and library for diffing ALT Linux binary packages between branches. Fetches both branches in parallel with retries and outputs JSON, human-readable summaries, or GitHub-ready Markdown.
 
 ## Highlights
@@ -9,17 +11,13 @@ CLI and library for diffing ALT Linux binary packages between branches. Fetches 
 - Resilient HTTP client with retries, timeouts, and customizable `--user-agent`.
 - New CLI alias `altpkg-diff` (keeps `package-comparison` for compatibility).
 
-## Installation
+## Quickstart
 ```bash
-git clone https://github.com/Raphailinc/package-comparison-tool.git
-cd package-comparison-tool
-python -m venv .venv && source .venv/bin/activate
-pip install -e .[dev]
+python -m pip install -e .[dev] && make ci
 ```
-
-Or install directly via pip:
+Запускает линтеры и тесты. Для простого использования без разработки можно установить пакетом:
 ```bash
-pip install git+https://github.com/Raphailinc/package-comparison-tool.git
+pip install git+https://github.com/Raphailinc/altpkg-diff.git
 ```
 
 ## CLI usage
@@ -60,6 +58,26 @@ result = compare_packages(
 print(result["stats"])
 # {'only_in_branch1': ..., 'differences': ...}
 ```
+
+## API samples
+```bash
+# JSON diff (first 5 rows)
+altpkg-diff p10 sisyphus --format json --limit 5 | head
+
+# Markdown report, name-only comparison
+altpkg-diff sisyphus p10 --ignore-arch --format markdown -o report.md
+```
+
+## Architecture
+- `package_comparison_tool/compare.py` — основная логика скачивания/сравнения RPM списков.
+- `cli.py` / `api.py` — CLI и FastAPI-lite интерфейс.
+- `examples/` — примеры готовых отчётов и конфигов.
+- `tests/` — unit-тесты на респонсы/фильтры.
+
+## Quality
+- Форматирование/линт: `ruff check .`
+- Тесты: `pytest`
+- CI: GitHub Actions (`ci.yml`) — линтер + тесты на Python 3.11.
 
 ## Development
 - Run tests: `pytest`
