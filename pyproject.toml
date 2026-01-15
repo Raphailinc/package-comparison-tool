@@ -19,7 +19,7 @@ package-comparison = "package_comparison_tool.cli:main"
 altpkg-diff = "package_comparison_tool.cli:main"
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff>=0.3.0", "responses>=0.25.0"]
+dev = ["pytest>=8.0", "pytest-cov>=5.0.0", "ruff>=0.3.0", "responses>=0.25.0"]
 
 [tool.ruff]
 line-length = 100
@@ -27,6 +27,7 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
+extend-ignore = ["E501", "UP035"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
