@@ -53,3 +53,48 @@ def test_cli_invalid_regex_exits(monkeypatch) -> None:
 
     assert result.exit_code != 0
     assert "Invalid regex" in result.output
+
+
+def test_cli_branch_not_found(monkeypatch) -> None:
+    runner = CliRunner()
+
+    def _raise_branch(*_args, **_kwargs):
+        raise cli.BranchNotFoundError("missing")
+
+    monkeypatch.setattr(cli, "compare_packages", _raise_branch)
+
+    result = runner.invoke(cli.main, ["sisyphus", "p10"])
+
+    assert result.exit_code == 2
+    assert "Error: Branch \"missing\" not found" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_cli_alt_api_error(monkeypatch) -> None:
+    runner = CliRunner()
+
+    def _raise_alt(*_args, **_kwargs):
+        raise cli.AltApiError("network down")
+
+    monkeypatch.setattr(cli, "compare_packages", _raise_alt)
+
+    result = runner.invoke(cli.main, ["sisyphus", "p10"])
+
+    assert result.exit_code == 1
+    assert "Error: network down" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_cli_debug_shows_traceback(monkeypatch) -> None:
+    runner = CliRunner()
+
+    def _raise_alt(*_args, **_kwargs):
+        raise cli.AltApiError("boom")
+
+    monkeypatch.setattr(cli, "compare_packages", _raise_alt)
+
+    result = runner.invoke(cli.main, ["sisyphus", "p10", "--debug"])
+
+    assert result.exit_code == 1
+    assert "Error: boom" in result.output
+    assert "Traceback (most recent call last)" in result.output

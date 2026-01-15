@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import re
 import sys
+import traceback
 
 import click
 
 from .compare import compare_packages
+from .exceptions import AltApiError, BranchNotFoundError
 from .formatting import render_result
 
 
@@ -72,6 +74,12 @@ from .formatting import render_result
     default=None,
     help="Custom User-Agent header for API requests.",
 )
+@click.option(
+    "--debug",
+    is_flag=True,
+    default=False,
+    help="Show tracebacks for debugging failed API calls.",
+)
 def main(
     branch1: str,
     branch2: str,
@@ -86,6 +94,7 @@ def main(
     name_filters: tuple[str, ...],
     fail_on_diff: bool,
     user_agent: str | None,
+    debug: bool,
 ) -> None:
     """Compare binary packages between two ALT Linux branches."""
 
@@ -104,16 +113,26 @@ def main(
     if name_patterns:
         click.echo(f"Name filter patterns: {', '.join(p.pattern for p in name_patterns)}", err=True)
 
-    result = compare_packages(
-        branch1,
-        branch2,
-        ignore_arch=ignore_arch,
-        arches=arches_set,
-        timeout_s=timeout_s,
-        max_packages=max_packages,
-        name_patterns=tuple(name_patterns) if name_patterns else None,
-        user_agent=user_agent,
-    )
+    try:
+        result = compare_packages(
+            branch1,
+            branch2,
+            ignore_arch=ignore_arch,
+            arches=arches_set,
+            timeout_s=timeout_s,
+            max_packages=max_packages,
+            name_patterns=tuple(name_patterns) if name_patterns else None,
+            user_agent=user_agent,
+        )
+    except BranchNotFoundError as exc:
+        _emit_error(str(exc), debug=debug)
+        raise SystemExit(2) from exc
+    except AltApiError as exc:
+        _emit_error(str(exc), debug=debug)
+        raise SystemExit(1) from exc
+    except Exception as exc:  # noqa: BLE001
+        _emit_error(str(exc), debug=debug)
+        raise SystemExit(1) from exc
 
     payload = render_result(result, fmt=output_format, pretty=pretty, limit=limit)
 
@@ -128,3 +147,9 @@ def main(
     differences = int(stats.get("differences", 0)) if isinstance(stats, dict) else 0
     if fail_on_diff and differences > 0:
         raise SystemExit(1)
+
+
+def _emit_error(message: str, *, debug: bool) -> None:
+    click.echo(f"Error: {message}", err=True)
+    if debug:
+        traceback.print_exc()

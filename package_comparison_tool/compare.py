@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+import logging
+from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack, closing
 from datetime import datetime, timezone
 from re import Pattern
 
@@ -10,6 +12,8 @@ import requests
 from .api import fetch_branch_binary_packages
 from .models import PackageInfo
 from .version import EVR, compare_evr
+
+logger = logging.getLogger(__name__)
 
 
 def _pkg_key(pkg: PackageInfo, *, ignore_arch: bool) -> tuple[str, str] | str:
@@ -50,10 +54,21 @@ def compare_packages(
     max_packages: int | None = None,
     name_patterns: Iterable[Pattern[str]] | None = None,
     user_agent: str | None = None,
+    headers: dict[str, str] | None = None,
+    retries: int = 3,
+    retry_backoff: float = 0.3,
+    session_factory: Callable[[], requests.Session] | None = None,
+    allow_concurrency_with_session: bool = False,
 ) -> dict[str, object]:
     """Compare binary packages between two ALT branches.
 
     Returns a JSON-serializable dict.
+
+    When ``session`` is provided, calls are sequential by default to avoid sharing a
+    potentially non-thread-safe session across threads. To regain parallel fetches, pass
+    ``allow_concurrency_with_session=True`` (the session will be cloned) or provide a
+    ``session_factory`` that returns independent sessions for each branch. Sessions created
+    via ``session_factory`` are closed automatically; caller-provided sessions are not.
     """
 
     compiled_patterns = list(name_patterns) if name_patterns else None
@@ -63,21 +78,51 @@ def compare_packages(
             return packages
         return [pkg for pkg in packages if any(p.search(pkg.name) for p in compiled_patterns)]
 
-    fetch_kwargs = dict(timeout_s=timeout_s, arches=arches, max_packages=max_packages, user_agent=user_agent)
+    fetch_kwargs = dict(
+        timeout_s=timeout_s,
+        arches=arches,
+        max_packages=max_packages,
+        user_agent=user_agent,
+        headers=headers,
+        retries=retries,
+        retry_backoff=retry_backoff,
+    )
 
-    if session:
-        packages1 = _filter_by_name(
-            fetch_branch_binary_packages(branch1, session=session, **fetch_kwargs)  # type: ignore[arg-type]
-        )
-        packages2 = _filter_by_name(
-            fetch_branch_binary_packages(branch2, session=session, **fetch_kwargs)  # type: ignore[arg-type]
-        )
-    else:
+    def _fetch(branch: str, *, sess: requests.Session | None) -> list[PackageInfo]:
+        return fetch_branch_binary_packages(branch, session=sess, **fetch_kwargs)  # type: ignore[arg-type]
+
+    def _parallel(
+        sess1: requests.Session | None,
+        sess2: requests.Session | None,
+    ) -> tuple[list[PackageInfo], list[PackageInfo]]:
         with ThreadPoolExecutor(max_workers=2) as pool:
-            future1 = pool.submit(fetch_branch_binary_packages, branch1, **fetch_kwargs)
-            future2 = pool.submit(fetch_branch_binary_packages, branch2, **fetch_kwargs)
-            packages1 = _filter_by_name(future1.result())
-            packages2 = _filter_by_name(future2.result())
+            future1 = pool.submit(_fetch, branch1, sess=sess1)
+            future2 = pool.submit(_fetch, branch2, sess=sess2)
+            return future1.result(), future2.result()
+
+    packages1: list[PackageInfo]
+    packages2: list[PackageInfo]
+
+    if session_factory is not None:
+        with ExitStack() as stack:
+            sess1 = stack.enter_context(closing(session_factory()))
+            sess2 = stack.enter_context(closing(session_factory()))
+            packages1, packages2 = _parallel(sess1, sess2)
+    elif session is None:
+        packages1, packages2 = _parallel(None, None)
+    elif allow_concurrency_with_session:
+        with ExitStack() as stack:
+            # Clone caller-provided session to avoid cross-thread use of a single Session
+            sess1 = stack.enter_context(closing(_clone_session(session)))
+            sess2 = stack.enter_context(closing(_clone_session(session)))
+            packages1, packages2 = _parallel(sess1, sess2)
+    else:
+        logger.debug("Using sequential fetch because a session was provided and allow_concurrency_with_session=False")
+        packages1 = _fetch(branch1, sess=session)
+        packages2 = _fetch(branch2, sess=session)
+
+    packages1 = _filter_by_name(packages1)
+    packages2 = _filter_by_name(packages2)
 
     idx1 = _index_packages(packages1, ignore_arch=ignore_arch)
     idx2 = _index_packages(packages2, ignore_arch=ignore_arch)
@@ -136,3 +181,18 @@ def compare_packages(
     }
 
     return result
+
+
+def _clone_session(base: requests.Session) -> requests.Session:
+    """Create a lightweight copy of a requests.Session for safe parallel use."""
+
+    clone = requests.Session()
+    clone.headers.update(base.headers)
+    clone.cookies.update(base.cookies)
+    clone.auth = base.auth
+    clone.verify = base.verify
+    clone.cert = base.cert
+    clone.proxies = dict(base.proxies)
+    clone.trust_env = base.trust_env
+
+    return clone

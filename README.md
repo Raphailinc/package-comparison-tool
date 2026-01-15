@@ -9,8 +9,9 @@ CLI and library for diffing ALT Linux binary packages between branches. Fetches 
 - JSON, summary, and Markdown outputs; `--limit` keeps human output compact (set `0` for unlimited).
 - Filters: architectures (`--arch`), regex by package name (`--filter`), and name-only comparison (`--ignore-arch`).
 - CI-friendly: `--fail-on-diff` exits with code `1` when differences are found.
-- Resilient HTTP client with retries, timeouts, and customizable `--user-agent`.
+- Resilient HTTP client with retries, timeouts, and customizable `--user-agent` (honored even with custom sessions).
 - New CLI alias `altpkg-diff` (keeps `package-comparison` for compatibility).
+- Cleaner CLI errors: short messages by default; `--debug` shows tracebacks. Exit code `2` for missing branches, `1` for other failures.
 
 ## Quickstart
 ```bash
@@ -42,7 +43,7 @@ Key options:
 - `--arch ARCH` – repeatable arch filter; `--ignore-arch` compares by name only.
 - `--limit N` – limit rows in human-readable formats (Markdown/summary); `0` shows everything.
 - `--fail-on-diff` – exit with code `1` when differences exist (useful for CI/pipelines).
-- `--timeout`, `--user-agent` – tune HTTP behavior.
+- `--timeout`, `--user-agent`, `--debug` – tune HTTP behavior and verbosity on errors.
 
 ## Library use
 ```python
@@ -72,6 +73,12 @@ altpkg-diff sisyphus p10 --ignore-arch --format markdown -o report.md
 pip install -e .[dev]
 pytest --cov=package_comparison_tool
 ```
+
+## HTTP & concurrency
+- Built-in retries for timeouts/connection errors/5xx with exponential backoff; per-request timeouts (`--timeout`) and per-call user agent override (`--user-agent`).
+- Sessions created internally are closed automatically; caller-provided sessions are never closed.
+- Header precedence (per request): explicit `headers` > `user_agent` value > `session.headers` (so custom UAs are honored even with custom sessions).
+- Parallel fetches by default; if you supply a session, calls run sequentially for safety. Provide `session_factory` or `allow_concurrency_with_session=True` to fetch with two cloned/independent sessions.
 
 ## Architecture
 - `package_comparison_tool/compare.py` — основная логика скачивания/сравнения RPM списков.
