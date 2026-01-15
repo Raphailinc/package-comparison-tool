@@ -1,4 +1,4 @@
-# Package Comparison Tool (altpkg-diff)
+# altpkg-diff
 
 CLI and library for diffing ALT Linux binary packages between branches. Fetches both branches in parallel with retries and outputs JSON, human-readable summaries, or GitHub-ready Markdown.
 
