@@ -1,6 +1,10 @@
 # Python
+.venv/
 venv/
 __pycache__/
+.pytest_cache/
+*.egg-info/
+.ruff_cache/
 *.pyc
 comparison_result.txt
 
