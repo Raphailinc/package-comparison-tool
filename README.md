@@ -1,6 +1,6 @@
-# altpkg-diff
-
 ![CI](https://github.com/Raphailinc/altpkg-diff/actions/workflows/ci.yml/badge.svg)
+
+# altpkg-diff
 
 CLI and library for diffing ALT Linux binary packages between branches. Fetches both branches in parallel with retries and outputs JSON, human-readable summaries, or GitHub-ready Markdown.
 
