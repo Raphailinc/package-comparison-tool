@@ -1,5 +1,5 @@
 ![CI](https://github.com/Raphailinc/altpkg-diff/actions/workflows/ci.yml/badge.svg)
-![Coverage](https://img.shields.io/codecov/c/github/Raphailinc/altpkg-diff?label=coverage)
+![Coverage](https://raw.githubusercontent.com/Raphailinc/altpkg-diff/main/badges/coverage.svg)
 
 # altpkg-diff
 
